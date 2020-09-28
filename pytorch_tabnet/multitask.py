@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from pytorch_tabnet.utils import PredictDataset
+from pytorch_tabnet.utils import PredictDataset, filter_weights
 from pytorch_tabnet.abstract_model import TabModel
 from pytorch_tabnet.multiclass_utils import infer_multitask_output
 from torch.utils.data import DataLoader
@@ -61,6 +61,7 @@ class TabNetMultiTaskClassifier(TabModel):
             for classes in self.classes_
         ]
         self.updated_weights = weights
+        filter_weights(self.updated_weights)
 
     def _predict_epoch(self, name, loader):
         """

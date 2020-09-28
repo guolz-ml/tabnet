@@ -341,7 +341,7 @@ def type_of_target(y):
         return "binary"  # [1, 2] or [["a"], ["b"]]
 
 
-def infer_output_dim(self, y_train):
+def infer_output_dim(y_train):
     """
     Infer output_dim from targets
 
@@ -375,7 +375,7 @@ def check_output_dim(labels, y):
     return
 
 
-def infer_multitask_output(self, y_train):
+def infer_multitask_output(y_train):
     """
     Infer output_dim from targets
     This is for multiple tasks.

@@ -102,7 +102,7 @@ class AUC(Metric):
             float
             MSE of predictions vs targets.
         """
-        return roc_auc_score(y_true, y_score)
+        return roc_auc_score(y_true, y_score[:, 1])
 
 
 class Accuracy(Metric):

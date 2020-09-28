@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from scipy.special import softmax
-from pytorch_tabnet.utils import PredictDataset
+from pytorch_tabnet.utils import PredictDataset, filter_weights
 from pytorch_tabnet.abstract_model import TabModel
 from pytorch_tabnet.multiclass_utils import infer_output_dim, check_output_dim
 from torch.utils.data import DataLoader
@@ -108,7 +108,7 @@ class TabNetRegressor(TabModel):
         return y
 
     def compute_loss(self, y_pred, y_true):
-        return self.loss_fn(y_pred, y_true)
+        return self.loss_fn(y_pred, y_true.reshape(-1, 1))
 
     def get_default_metric(self):
         return "MSE"
@@ -123,14 +123,10 @@ class TabNetRegressor(TabModel):
         eval_set,
         weights
     ):
-        if len(y_train.shape) == 1:
-            raise ValueError(
-                """Please apply reshape(-1, 1) to your targets
-                                if doing single regression."""
-            )
-        self.output_dim = y_train.shape[1]
+        self.output_dim = 1
 
         self.updated_weights = weights
+        filter_weights(self.updated_weights)
 
     def predict_func(self, outputs):
         return outputs

@@ -196,7 +196,7 @@ class History(Callback):
             return
         if epoch % self.verbose != 0:
             return
-        msg = f"step: {epoch:<4}"
+        msg = f"epoch: {epoch:<4}"
         for metric_name, metric_value in self.batch_metrics.items():
             msg += f"|  {metric_name:<5}: {np.round(metric_value, 5):<10}"
         self.total_time = int(time.time() - self.start_time)

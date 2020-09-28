@@ -241,9 +241,10 @@ def validate_eval_set(eval_set, eval_name, X_train, y_train):
         assert (
             X.shape[1] == X_train.shape[1]
         ), f"Number of columns is different between X_{name} ({X.shape[1]}) and X_train ({X_train.shape[1]})"
-        assert (
-            y.shape[1] == y_train.shape[1]
-        ), f"Number of columns is different between y_{name} ({y.shape[1]}) and y_train ({y_train.shape[1]})"
+        if len(y_train.shape) == 2:
+            assert (
+                y.shape[1] == y_train.shape[1]
+            ), f"Number of columns is different between y_{name} ({y.shape[1]}) and y_train ({y_train.shape[1]})"
         assert (
             X.shape[0] == y.shape[0]
         ), f"You need the same number of rows between X_{name} ({X.shape[0]}) and y_{name} ({y.shape[0]})"

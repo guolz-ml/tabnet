@@ -10,7 +10,6 @@ from pytorch_tabnet.utils import (
     PredictDataset,
     create_explain_matrix,
     validate_eval_set,
-    filter_weights,
     create_dataloaders,
 )
 from pytorch_tabnet.callbacks import (
@@ -48,7 +47,7 @@ class TabModel(BaseEstimator):
     clip_value: int = 1
     verbose: int = 1
     optimizer_fn: Any = torch.optim.Adam
-    optimizer_params: Dict = field(default_factory=dict(lr=2e-2))
+    optimizer_params: Dict = field(default_factory=lambda: dict(lr=2e-2))
     scheduler_fn: Any = None
     scheduler_params: Dict = field(default_factory=dict)
     mask_type: str = "sparsemax"
@@ -57,6 +56,7 @@ class TabModel(BaseEstimator):
     device_name: str = "auto"
 
     def __post_init__(self):
+        self.batch_size = 1024
         self.virtual_batch_size = 1024
         torch.manual_seed(self.seed)
         # Defining device
@@ -131,6 +131,7 @@ class TabModel(BaseEstimator):
         self.num_workers = num_workers
         self.drop_last = drop_last
         self.input_dim = X_train.shape[1]
+        self._stop_training = False
 
         if loss_fn is None:
             self.loss_fn = self.get_default_loss()
@@ -149,7 +150,7 @@ class TabModel(BaseEstimator):
         )
 
         self._set_network()
-        self._set_metrics(eval_metric, eval_name)
+        self._set_metrics(eval_metric, eval_names)
         self._set_callbacks(callbacks)
         self._set_optimizer()
         self._set_scheduler()
@@ -334,7 +335,6 @@ class TabModel(BaseEstimator):
         y_score = []
 
         for batch_idx, (X, y) in enumerate(train_loader):
-
             self._callback_container.on_batch_begin(batch_idx)
 
             batch_outs, batch_logs = self._train_batch(X, y)
@@ -344,7 +344,7 @@ class TabModel(BaseEstimator):
             y_true.append(y)
             y_score.append(batch_outs["scores"])
 
-        y_true = np.vstack(y_true)
+        y_true = np.hstack(y_true)
         y_score = np.vstack(y_score)
 
         epoch_logs = {"lr": self._optimizer.param_groups[-1]["lr"]}
@@ -427,7 +427,7 @@ class TabModel(BaseEstimator):
             y_true.append(y)
             y_score.append(scores)
 
-        y_true = np.vstack(y_true)
+        y_true = np.hstack(y_true)
         y_score = np.vstack(y_score)
         y_score = self.convert_score(y_score)
 
@@ -527,7 +527,7 @@ class TabModel(BaseEstimator):
 
         """
         # Setup default callbacks history and early stopping
-        self.history = History(self, verbose=self._verbose)
+        self.history = History(self, verbose=self.verbose)
         early_stopping = EarlyStopping(
             early_stopping_metric=self.early_stopping_metric,
             is_maximize=self._metrics[-1]._maximize,
@@ -542,7 +542,7 @@ class TabModel(BaseEstimator):
     def _set_optimizer(self):
         """Setup optimizer."""
         self._optimizer = self.optimizer_fn(
-            self.network.parameters(), lr=self.lr, **self.optimizer_params
+            self.network.parameters(), **self.optimizer_params
         )
 
     def _set_scheduler(self):
@@ -574,7 +574,6 @@ class TabModel(BaseEstimator):
 
         """
         # all weights are not allowed for this type of model
-        filter_weights(self.weights)
         y_train_mapped = self.prepare_target(y_train)
         for i, (X, y) in enumerate(eval_set):
             y_mapped = self.prepare_target(y)
@@ -584,7 +583,7 @@ class TabModel(BaseEstimator):
             X_train,
             y_train_mapped,
             eval_set,
-            self.weights,
+            self.updated_weights,
             self.batch_size,
             self.num_workers,
             self.drop_last,
